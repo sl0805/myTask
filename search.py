@@ -1,18 +1,21 @@
 @app.route('/treeHole/search', methods=['GET'])
 def tree_hole_search():
-    # req_data = request.get_json()
     text = request.args.get("text")
-    pattern = map(lambda k: "(?=.*%s)" % k, text.split(" "))
-    # findall是找到所有的字符,再在字符中添加空格，当然你想添加其他东西当然也可以
-    text1 = '%'.join(pattern)
+    # 关键词分开
+    keyword_arr = text.split(' ')
+    # 消除空格
+    text = text.replace(" ", '')
     try:
-        get_holes = db.session.query(TreeHole).filter(
-            TreeHole.content.like('%{keyword}%'.format(keyword=text1))).all()
-
+        rule = or_(*[TreeHole.content.like('%'+keyword+'%')
+                     for keyword in text])
+        get_holes = db.session.query(TreeHole).filter(rule).all()
+        # get_holes = db.session.query(TreeHole).filter(TreeHole.content.op('%s'%text1)(REGEX))
         tree_holes = []
         for h in get_holes:
             h1 = h.to_dict()
-            a = fuzz.partial_ratio(text, h.content)
+            a = 0
+            for k in keyword_arr:
+                a += fuzz.partial_ratio(k, h.content)
             h1['order'] = a
             tree_holes.append(h1)
 
